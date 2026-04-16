@@ -69,7 +69,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     .run();
 
   const id = res.meta.last_row_id;
-  const origin = env.SITE_ORIGIN || new URL(request.url).origin;
+  // Use the request origin so uploads work regardless of which host the user
+  // is on (pages.dev preview, custom domain, local dev proxy).
+  const origin = new URL(request.url).origin;
   const put_url = `${origin}/api/compliments/audio/upload?key=${encodeURIComponent(audio_key)}&id=${id}`;
 
   return ok({ id, audio_key, put_url }, { status: 201 });
