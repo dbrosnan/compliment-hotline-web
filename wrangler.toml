@@ -7,7 +7,7 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "compliment-hotline"
-database_id = "REPLACE_WITH_D1_ID"
+database_id = "16191c2d-ec99-4065-b2f6-6785f6948bf0"
 migrations_dir = "migrations"
 
 # R2 bucket for audio blobs
@@ -18,7 +18,7 @@ bucket_name = "compliment-hotline-audio"
 # KV namespace for rate limiting
 [[kv_namespaces]]
 binding = "RATE_LIMIT"
-id = "REPLACE_WITH_KV_ID"
+id = "e1bedb8c7a864b8982d801e5d7ff7f60"
 
 [vars]
 MAX_AUDIO_BYTES = "2097152"

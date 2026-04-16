@@ -1,14 +1,18 @@
-[
-  {
-    "AllowedOrigins": [
-      "https://complimenthotline.org",
-      "https://compliment-hotline.pages.dev",
-      "http://localhost:5173",
-      "http://localhost:8788"
-    ],
-    "AllowedMethods": ["GET", "PUT", "HEAD"],
-    "AllowedHeaders": ["Content-Type", "Content-Length"],
-    "ExposeHeaders": ["ETag"],
-    "MaxAgeSeconds": 3600
-  }
-]
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "https://complimenthotline.org",
+          "https://compliment-hotline.pages.dev",
+          "http://localhost:5173",
+          "http://localhost:8788"
+        ],
+        "methods": ["GET", "PUT", "HEAD"],
+        "headers": ["Content-Type", "Content-Length"]
+      },
+      "exposeHeaders": ["ETag"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

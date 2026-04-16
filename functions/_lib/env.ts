@@ -16,6 +16,7 @@ export interface Env {
 }
 
 export const asInt = (v: string | undefined, fallback: number): number => {
+  if (v === undefined || v === null || v === "") return fallback;
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
 };

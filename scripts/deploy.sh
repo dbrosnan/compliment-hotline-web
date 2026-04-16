@@ -22,7 +22,7 @@ STEP "Creating D1 database (idempotent)"
 if ! wrangler d1 list 2>/dev/null | grep -q "compliment-hotline"; then
   CREATE_OUT=$(wrangler d1 create compliment-hotline)
   echo "$CREATE_OUT"
-  D1_ID=$(echo "$CREATE_OUT" | grep -oE '"database_id":\s*"[^"]+"' | head -1 | cut -d'"' -f4)
+  D1_ID=$(echo "$CREATE_OUT" | grep -oE 'database_id[[:space:]]*=[[:space:]]*"[a-f0-9-]+"' | head -1 | cut -d'"' -f2)
   NOTE "D1 created with id: $D1_ID"
   NOTE "⚠ Paste this into wrangler.toml under [[d1_databases]] database_id, then re-run."
   if [ -n "${D1_ID:-}" ]; then
