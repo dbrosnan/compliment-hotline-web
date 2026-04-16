@@ -17,6 +17,7 @@ export default {
       fontFamily: {
         display: ['"Monoton"', "cursive"],
         body: ['"Space Grotesk"', "ui-sans-serif", "system-ui"],
+        serif: ['"Fraunces"', "Georgia", "serif"],
       },
       fontSize: {
         hero: ["6.5rem", { lineHeight: "1", letterSpacing: "0.04em" }],

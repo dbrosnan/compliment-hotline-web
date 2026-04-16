@@ -1,5 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import type { ComplimentItem } from "../lib/api";
+import { useSpeech } from "../lib/useSpeech";
+import LiquidLightBackdrop from "./LiquidLightBackdrop";
+import ComplimentText from "./ComplimentText";
+import TravelingWaveform from "./TravelingWaveform";
 
 type Props = {
   open: boolean;
@@ -8,82 +12,63 @@ type Props = {
   onFinished: () => void;
 };
 
-type Phase = "ringing" | "playing" | "done";
-
+/**
+ * The compliment-playback modal.
+ *
+ * Composed of four concentric layers (bottom → top):
+ *   1. LiquidLightBackdrop — three oil blobs + feTurbulence displacement + grain
+ *      + phase color wash (uv → coral → citrus).
+ *   2. A dark-blur panel so the foreground stays readable against the blobs.
+ *   3. ComplimentText — per-word ink bloom via Fraunces variable font
+ *      (wght + opsz axes), driven by SpeechSynthesis boundary events.
+ *   4. TravelingWaveform — 41 bars rendered in rAF, each `onboundary` injects
+ *      a gaussian pulse that travels left→right as the word is spoken.
+ *
+ * All motion is speech-reactive via the `useSpeech` hook. Reduced-motion
+ * users get static text with a highlight on the active word.
+ */
 export default function PickUpModal({ open, compliment, onClose, onFinished }: Props) {
-  const [phase, setPhase] = useState<Phase>("ringing");
-  const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const text = compliment?.message ?? null;
 
+  const speech = useSpeech(text, { active: open && !!text, rate: 0.95 });
+
+  // When the delivered phase settles back to idle, trigger the parent's
+  // auto-scroll to the submit section.
   useEffect(() => {
-    if (!open) {
-      setPhase("ringing");
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-      return;
-    }
-    if (!compliment?.message) return;
-
-    // Brief "ringing" beat before the voice starts, for theater.
-    const ringTimer = window.setTimeout(() => speak(compliment.message!), 900);
-    return () => {
-      window.clearTimeout(ringTimer);
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, compliment?.id]);
-
-  const speak = (text: string) => {
-    setPhase("playing");
-    const readingDelay = Math.min(9000, Math.max(4000, text.length * 70));
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      // Fallback: show text for a visible beat, then transition
-      setTimeout(() => finish(), readingDelay);
-      return;
-    }
-    // Wait for voices to load (Chrome sometimes ships them async)
-    const go = () => {
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 0.95;
-      u.pitch = 1.05;
-      u.volume = 1;
-      const voices = window.speechSynthesis.getVoices();
-      // Prefer a warm, natural voice if available
-      const preferred =
-        voices.find((v) => /samantha|karen|victoria|moira|fiona/i.test(v.name)) ||
-        voices.find((v) => v.lang.startsWith("en") && v.localService) ||
-        voices.find((v) => v.lang.startsWith("en")) ||
-        voices[0];
-      if (preferred) u.voice = preferred;
-      u.onend = () => finish();
-      u.onerror = () => finish();
-      utterRef.current = u;
-      window.speechSynthesis.speak(u);
-    };
-    if (window.speechSynthesis.getVoices().length > 0) {
-      go();
-    } else {
-      const onVoices = () => {
-        window.speechSynthesis.removeEventListener("voiceschanged", onVoices);
-        go();
-      };
-      window.speechSynthesis.addEventListener("voiceschanged", onVoices);
-      // Safety net
-      window.setTimeout(go, 400);
-    }
-  };
-
-  const finish = () => {
-    setPhase("done");
-    // Small delay so the user sees "delivered" before we whisk them away
-    window.setTimeout(() => {
+    if (open && speech.phase === "idle" && !!text) {
+      // useSpeech resets to 'idle' 1.8s after `onend`. That's our cue.
+      const prevPhase = (speech as unknown as { _prev?: string })._prev;
+      void prevPhase;
       onFinished();
-    }, 900);
-  };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speech.phase]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   if (!open || !compliment) return null;
+
+  const phase = speech.phase;
+  const isRinging = phase === "ringing" || phase === "idle";
+  const hasStarted = phase === "speaking" || phase === "paused" || phase === "delivered";
+  const hasEnded = phase === "delivered";
+
+  const phaseLabel =
+    phase === "ringing" || phase === "idle"
+      ? "📞 incoming..."
+      : phase === "speaking" || phase === "paused"
+        ? "🎙 from a stranger"
+        : phase === "delivered"
+          ? "💌 delivered"
+          : "";
 
   return (
     <div
@@ -92,70 +77,133 @@ export default function PickUpModal({ open, compliment, onClose, onFinished }: P
       aria-label="Compliment player"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 animate-[fadeIn_300ms_ease_forwards]"
     >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-midnight/85 backdrop-blur-md"
+      {/* Layer 1: full-viewport liquid light backdrop */}
+      <LiquidLightBackdrop phase={phase} pulseKey={speech.pulses.length} />
+
+      {/* Close on backdrop click — sits over the backdrop layer */}
+      <button
         onClick={onClose}
+        aria-label="Close modal"
+        className="absolute inset-0 w-full h-full cursor-default bg-midnight/30 backdrop-blur-sm"
+        tabIndex={-1}
       />
 
-      {/* Content */}
-      <div className="relative z-10 max-w-3xl w-full card p-8 md:p-12 text-center shadow-neon">
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute top-4 right-4 text-cream/50 hover:text-cream text-2xl leading-none"
+      {/* Layer 2: the card */}
+      <div className="relative z-10 max-w-3xl w-full">
+        <div
+          className={`relative rounded-3xl p-8 md:p-14 text-center modal-card modal-card-${phase}`}
+          style={{
+            background: "rgba(11, 8, 32, 0.55)",
+            backdropFilter: "blur(14px) saturate(1.4)",
+            WebkitBackdropFilter: "blur(14px) saturate(1.4)",
+            border: "1px solid rgba(252, 232, 200, 0.12)",
+          }}
         >
-          ✕
-        </button>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute top-4 right-5 text-cream/60 hover:text-cream text-2xl leading-none z-10 transition-colors"
+          >
+            ✕
+          </button>
 
-        <div className="label-caps mb-6">
-          {phase === "ringing" ? "📞 incoming..." : phase === "playing" ? "🎙 from a stranger" : "💌 delivered"}
-        </div>
-
-        {phase === "ringing" && (
-          <div className="py-12">
-            <div className="inline-block animate-ring">
-              <RingingHandset />
-            </div>
-            <div className="mt-6 text-cream/60">connecting you with a stranger...</div>
+          <div
+            className="label-caps mb-6 transition-colors duration-700"
+            style={{
+              color: isRinging ? "rgba(122, 43, 255, 0.9)" : hasEnded ? "rgba(255, 210, 63, 0.95)" : "rgba(255, 94, 108, 0.95)",
+            }}
+          >
+            {phaseLabel}
           </div>
-        )}
 
-        {(phase === "playing" || phase === "done") && (
-          <>
-            <blockquote className="font-display text-3xl md:text-5xl leading-tight text-cream mb-6">
-              &ldquo;{compliment.message}&rdquo;
-            </blockquote>
-            <div className="text-magenta font-semibold">
-              — {compliment.name || "a stranger"}
+          {/* RINGING — dim handset with a single slow pulse, text in ghost state */}
+          {isRinging && (
+            <div className="py-6 flex flex-col items-center gap-6">
+              <div className="animate-ring opacity-80">
+                <RingingHandset />
+              </div>
+              <div className="font-body text-sm tracking-[0.25em] uppercase text-cream/40">
+                connecting you with a stranger
+              </div>
             </div>
-            <div className="mt-10 flex justify-center items-end gap-1.5 h-16">
-              {phase === "playing" ? (
-                Array.from({ length: 16 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-2 bg-mint rounded-full shadow-[0_0_8px_#6EF7C4]"
-                    style={{
-                      animation: `bar 0.9s ease-in-out infinite`,
-                      animationDelay: `${i * 0.06}s`,
-                      height: "40%",
-                    }}
-                  />
-                ))
-              ) : (
-                <div className="text-citrus font-semibold animate-pulse">
-                  ✨ taking you to leave one of your own...
-                </div>
-              )}
-            </div>
-          </>
-        )}
+          )}
+
+          {/* SPEAKING / DELIVERED — the whole point */}
+          {!isRinging && text && (
+            <>
+              <div className="mb-10">
+                <ComplimentText
+                  text={text}
+                  wordIndex={speech.wordIndex}
+                  hasStarted={hasStarted}
+                  hasEnded={hasEnded}
+                />
+              </div>
+
+              <div
+                className="text-magenta font-semibold transition-opacity duration-700"
+                style={{ fontFamily: '"Fraunces", Georgia, serif', fontStyle: "italic", opacity: hasStarted ? 1 : 0 }}
+              >
+                — {compliment.name || "a stranger"}
+              </div>
+
+              <div className="mt-10 min-h-[72px] flex items-center justify-center">
+                {!hasEnded ? (
+                  <TravelingWaveform state={speech} />
+                ) : (
+                  <div className="text-citrus font-semibold animate-pulse tracking-widest uppercase text-sm">
+                    ✨ now it's your turn
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <style>{`
-        @keyframes bar {
-          0%, 100% { height: 20%; }
-          50% { height: 95%; }
+        .modal-card {
+          transition: box-shadow 900ms ease, background 900ms ease;
+          box-shadow:
+            0 0 24px rgba(122, 43, 255, 0.25),
+            0 0 80px rgba(122, 43, 255, 0.15),
+            0 0 180px rgba(122, 43, 255, 0.08);
+        }
+        .modal-card-speaking, .modal-card-paused {
+          box-shadow:
+            0 0 30px rgba(255, 94, 108, 0.45),
+            0 0 100px rgba(255, 94, 108, 0.25),
+            0 0 220px rgba(233, 75, 214, 0.15);
+        }
+        .modal-card-delivered {
+          box-shadow:
+            0 0 30px rgba(255, 210, 63, 0.4),
+            0 0 110px rgba(255, 210, 63, 0.22),
+            0 0 220px rgba(110, 247, 196, 0.18);
+        }
+
+        /* Halation halo — conic gradient ring behind the card, slow rotation */
+        .modal-card::before {
+          content: "";
+          position: absolute;
+          inset: -28px;
+          z-index: -1;
+          border-radius: inherit;
+          background: conic-gradient(from 0deg, #7A2BFF, #FF5E6C, #FFD23F, #6EF7C4, #7A2BFF);
+          filter: blur(48px);
+          opacity: 0.35;
+          animation: modal-halo 45s linear infinite;
+          transition: opacity 900ms ease;
+        }
+        .modal-card-speaking::before, .modal-card-paused::before { opacity: 0.55; }
+        .modal-card-delivered::before { opacity: 0.48; }
+        @keyframes modal-halo {
+          to { transform: rotate(1turn); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .modal-card::before { animation: none; opacity: 0.25 !important; }
+          .modal-card { transition: none !important; }
         }
       `}</style>
     </div>
@@ -164,7 +212,7 @@ export default function PickUpModal({ open, compliment, onClose, onFinished }: P
 
 function RingingHandset() {
   return (
-    <svg width="120" height="120" viewBox="0 0 140 140" fill="none">
+    <svg width="96" height="96" viewBox="0 0 140 140" fill="none" aria-hidden>
       <defs>
         <linearGradient id="handsetModalGrad" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#FF5E6C" />
