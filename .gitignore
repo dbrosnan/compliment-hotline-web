@@ -1,0 +1,12 @@
+node_modules
+dist
+.wrangler
+.dev.vars
+.env
+.env.local
+*.log
+.DS_Store
+public/hero.mp4
+public/hero-poster.jpg
+.vite
+coverage

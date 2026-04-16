@@ -1,0 +1,42 @@
+{
+  "name": "compliment-hotline-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Marketing + submission site for the Compliment Hotline art piece. Ships on Cloudflare Pages.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "pages:dev": "wrangler pages dev -- npm run dev",
+    "remotion:studio": "remotion studio remotion/src/index.ts",
+    "remotion:render": "remotion render remotion/src/index.ts HeroVideo public/hero.mp4 --codec=h264 --crf=18",
+    "remotion:poster": "remotion still remotion/src/index.ts HeroVideo public/hero-poster.jpg --frame=510",
+    "hero:all": "npm run remotion:render && npm run remotion:poster",
+    "db:create": "wrangler d1 create compliment-hotline",
+    "db:migrate:local": "wrangler d1 migrations apply compliment-hotline --local",
+    "db:migrate:remote": "wrangler d1 migrations apply compliment-hotline --remote",
+    "r2:create": "wrangler r2 bucket create compliment-hotline-audio",
+    "r2:cors": "wrangler r2 bucket cors put compliment-hotline-audio --file r2-cors.json",
+    "kv:create": "wrangler kv namespace create RATE_LIMIT",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=compliment-hotline"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250410.0",
+    "@remotion/cli": "^4.0.230",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "remotion": "^4.0.230",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "wrangler": "^4.0.0"
+  }
+}

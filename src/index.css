@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body {
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(233, 75, 214, 0.18), transparent 60%),
+      radial-gradient(900px 600px at 110% 10%, rgba(110, 247, 196, 0.12), transparent 60%),
+      radial-gradient(800px 800px at 50% 120%, rgba(255, 210, 63, 0.1), transparent 60%),
+      #0b0820;
+    min-height: 100%;
+  }
+  ::selection {
+    background: #ff5e6c;
+    color: #0b0820;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-coral text-midnight font-semibold px-6 py-3 shadow-glow
+      transition-all duration-200 hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-cream/20 text-cream px-6 py-3 transition-colors hover:border-cream/60;
+  }
+  .card {
+    @apply rounded-2xl bg-velvet/70 border border-cream/10 backdrop-blur-sm;
+  }
+  .label-caps {
+    @apply text-[0.8125rem] font-medium uppercase tracking-[0.2em] text-cream/70;
+  }
+  .shine {
+    background: linear-gradient(
+      110deg,
+      rgba(252, 232, 200, 0) 0%,
+      rgba(252, 232, 200, 0.12) 20%,
+      rgba(252, 232, 200, 0) 40%
+    );
+    background-size: 200% 100%;
+    animation: shine 6s linear infinite;
+  }
+}
+
+@keyframes shine {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Chromatic-aberration hover effect for the word "COMPLIMENT" */
+.chroma {
+  text-shadow:
+    2px 0 0 rgba(233, 75, 214, 0.7),
+    -2px 0 0 rgba(110, 247, 196, 0.7);
+}
+
+/* Retro scanlines overlay for hero */
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.03) 0px,
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+}

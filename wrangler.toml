@@ -1,0 +1,34 @@
+name = "compliment-hotline"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+# D1 database for text + metadata
+[[d1_databases]]
+binding = "DB"
+database_name = "compliment-hotline"
+database_id = "REPLACE_WITH_D1_ID"
+migrations_dir = "migrations"
+
+# R2 bucket for audio blobs
+[[r2_buckets]]
+binding = "AUDIO"
+bucket_name = "compliment-hotline-audio"
+
+# KV namespace for rate limiting
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "REPLACE_WITH_KV_ID"
+
+[vars]
+MAX_AUDIO_BYTES = "2097152"
+MAX_AUDIO_DURATION_MS = "30000"
+MAX_MESSAGE_CHARS = "500"
+MAX_NAME_CHARS = "60"
+FEED_PAGE_SIZE = "20"
+ALLOWED_MIME = "audio/webm;codecs=opus,audio/webm,audio/mp4,audio/ogg"
+SITE_ORIGIN = "https://complimenthotline.org"
+
+# Secrets (set via: wrangler pages secret put <NAME>)
+#   ADMIN_TOKEN         — shared secret for /admin
+#   IP_HASH_SALT_SEED   — base seed for daily salt derivation
