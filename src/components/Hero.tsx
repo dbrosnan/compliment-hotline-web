@@ -43,12 +43,12 @@ export default function Hero() {
       <div className="absolute inset-0 bg-gradient-to-b from-midnight/40 via-midnight/20 to-midnight pointer-events-none" />
 
       {/* Content */}
-      <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
+      <div className="relative z-10 text-center px-6 max-w-7xl mx-auto">
         <div className="label-caps mb-6 opacity-0 animate-[fadeIn_800ms_ease_forwards] [animation-delay:1400ms]">
           📞 An analog art piece for a digital disco
         </div>
 
-        <h1 className="font-display text-[clamp(3rem,10vw,8rem)] leading-none tracking-wide text-cream chroma">
+        <h1 className="font-display text-[clamp(2.5rem,9vw,7rem)] leading-none tracking-wide text-cream chroma whitespace-nowrap">
           {WORDS.map((ch, i) => (
             <span
               key={i}
