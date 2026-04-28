@@ -67,10 +67,30 @@
         $("queue").innerHTML = items.map(renderItem).join("");
         document.querySelectorAll("[data-approve]").forEach((b) => b.onclick = () => act(b.dataset.approve, "approve"));
         document.querySelectorAll("[data-reject]").forEach((b) => b.onclick = () => act(b.dataset.reject, "reject"));
+        // iOS Safari fires `error` on the <audio> element when it can't
+        // decode the source (e.g. webm/opus on iOS < 18). Reveal the
+        // download/open-in-tab fallback so the moderator can still preview.
+        document.querySelectorAll("audio[data-audio]").forEach((el) => {
+          el.addEventListener("error", () => {
+            const fb = document.querySelector(`[data-fallback="${el.dataset.audio}"]`);
+            if (fb) fb.style.display = "block";
+          });
+        });
       }
       function renderItem(c) {
         const when = new Date(c.created_at * 1000).toLocaleString();
-        const audio = c.audio_key ? `<audio controls src="/api/admin/audio/${c.id}"></audio>` : "";
+        // iOS Safari can't decode webm/opus reliably. Render the native player
+        // (works for mp4/aac and modern Safari with webm) AND a download/open
+        // fallback link the moderator can tap if native playback errors out.
+        const src = `/api/admin/audio/${c.id}`;
+        const audio = c.audio_key
+          ? `<audio controls preload="metadata" playsinline data-audio="${c.id}" src="${src}"></audio>
+             <div data-fallback="${c.id}" style="display:none;margin-top:6px;font-size:.9rem">
+               Native player can't decode this file on iOS.
+               <a href="${src}" download="compliment-${c.id}" style="color:#FFD23F;text-decoration:underline">Download</a>
+               or <a href="${src}" target="_blank" rel="noopener" style="color:#FFD23F;text-decoration:underline">open in new tab</a>.
+             </div>`
+          : "";
         const msg = c.message ? `<div class="msg">"${escapeHtml(c.message)}"</div>` : "";
         return `
           <div class="card">

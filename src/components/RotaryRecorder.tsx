@@ -29,7 +29,15 @@ export default function RotaryRecorder() {
   }, []);
 
   const pickMime = () => {
-    const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+    // Prefer mp4/aac so the resulting blob plays on iOS Safari without
+    // transcoding. Fall back to webm/opus for browsers that lack mp4
+    // MediaRecorder support (older desktop Chrome).
+    const candidates = [
+      "audio/mp4;codecs=mp4a.40.2",
+      "audio/mp4",
+      "audio/webm;codecs=opus",
+      "audio/webm",
+    ];
     for (const m of candidates) {
       if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(m)) return m;
     }
